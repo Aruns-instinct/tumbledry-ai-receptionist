@@ -16,7 +16,8 @@ LiveKit Inference. No paid services required to run the demo.
   order and reads out the stage and ready time (`lookup_order` tool).
 - **Pickup/appointment booking**: offers real free slots, books with name, phone and
   address, and generates the WhatsApp confirmation text (`get_slots`, `book_slot`).
-  Double-booked slots are rejected automatically.
+  Double-booked slots are rejected automatically. Bookings create a Google Calendar
+  event when `calendar_id` + a service account are configured (demo mode otherwise).
 - **Human handoff with context**: complaints or owner requests are escalated to the
   manager with a one-line summary (`escalate`).
 - **CRM-style call log**: every call ends with a structured log of reason, caller mood
@@ -34,8 +35,9 @@ LiveKit Inference. No paid services required to run the demo.
 ## Onboard a new business (self-serve)
 
 1. Copy `business.yaml`, edit name, area, hours, services, prices, manager, languages.
-2. Pick the closest pack in `packs/` (today: `laundry`) or copy it to a new pack with
+2. Pick the closest pack in `packs/` (`laundry`, `salon`) or copy one to a new pack with
    your booking noun (`pickup`, `appointment`, `table`), status stages and FAQ seeds.
+   See `business-salon.example.yaml` for a salon setup (1-hour appointment slots).
 3. Replace `demo_data.json` samples, or point `sheet_id` at the business's Google Sheet.
 4. Deploy (see below). The agent name, greeting and behavior all come from config.
 
@@ -69,9 +71,15 @@ Join link for a human: `https://meet.livekit.io/custom?liveKitUrl=<url-encoded-w
 - `requirements.txt`, `Dockerfile`, `.dockerignore`, `livekit.toml` - deployment
 - `.env.example` - environment variables (never commit real keys)
 
+## Google Calendar backend
+
+Set `calendar_id` in `business.yaml` (or the `GOOGLE_CALENDAR_ID` secret) plus
+`GOOGLE_SERVICE_ACCOUNT_JSON` (a service account the calendar is shared with, Calendar
+API enabled). Then `get_slots` reads busy slots from the calendar and `book_slot`
+creates the event. Without them, slots and bookings run on the demo/sheet backend.
+
 ## Roadmap
 
-- Google Calendar as a booking backend (alongside Sheets)
 - Real WhatsApp sends via WhatsApp Business API (confirmation text is generated and logged today)
 - Live call transfer to the manager's phone (needs a phone number / SIP trunk)
-- More industry packs: salon, clinic, restaurant, tuition center
+- More industry packs: clinic, restaurant, tuition center
