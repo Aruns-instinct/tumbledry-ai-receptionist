@@ -1,0 +1,32 @@
+# Example: salon onboarding = copy this to business.yaml and edit. Pack: salon.
+business_id: stylehub-rspuram
+pack: salon
+name: "Style Hub Salon"
+area: "RS Puram, Coimbatore"
+greeting: "Vanakkam! Thank you for calling Style Hub Salon, RS Puram. I am the salon's AI assistant. How can I help you today?"
+hours: "10 AM to 8 PM every day, closed on Mondays"
+languages: [english, tamil]
+default_language: english
+timezone: "Asia/Kolkata"
+manager:
+  name: "the salon manager"
+  callback_promise: "within an hour"
+sheet_id: ""
+calendar_id: ""
+services:
+  - "haircut"
+  - "hair coloring"
+  - "facial and cleanup"
+  - "threading and waxing"
+  - "manicure and pedicure"
+  - "head massage"
+prices:
+  - "men's haircut Rs 250"
+  - "women's haircut from Rs 400"
+  - "hair coloring from Rs 999"
+  - "facial from Rs 799"
+  - "cleanup from Rs 499"
+  - "head massage Rs 399"
+booking:
+  slot_hours: [10, 20]   # 10 AM - 8 PM
+  slot_len_hours: 1
