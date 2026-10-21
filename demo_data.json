@@ -1,0 +1,9 @@
+{
+  "orders": [
+    {"phone": "9000000001", "name": "Kavya", "order": "TD-1042", "items": "2 sarees dry clean", "stage": "ironing", "ready": "Thursday evening"},
+    {"phone": "9000000002", "name": "Ramesh", "order": "TD-1043", "items": "1 suit dry clean", "stage": "delivery ready", "ready": "today"},
+    {"phone": "9000000003", "name": "Meena", "order": "TD-1044", "items": "shoes cleaning", "stage": "washing", "ready": "Friday"}
+  ],
+  "bookings": [],
+  "calls": []
+}
