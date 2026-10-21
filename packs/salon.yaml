@@ -1,0 +1,9 @@
+# Industry pack: salon / beauty parlour. Vocabulary, FAQ seeds, booking shape.
+booking_noun: "appointment"
+status_stages: []
+faq_seeds: |
+  Common services: haircut, hair coloring, facial, cleanup, threading, waxing, manicure, pedicure, head massage, spa.
+  Duration questions: a haircut takes about 30 to 45 minutes; coloring, smoothening or spa can take 1 to 2 hours.
+  Stylist preference: if the caller names a preferred stylist, note it in the booking and say the team will try to keep them; never guarantee a specific stylist.
+  Bridal packages, party makeup and package deals: say the team will call back with a custom quote - never quote package prices.
+  Products: if asked which brands are used, say the team can confirm on WhatsApp.
