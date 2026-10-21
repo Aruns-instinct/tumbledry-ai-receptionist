@@ -1,0 +1,31 @@
+# Per-business config. New business = copy this file, edit values, pick a pack.
+business_id: tumbledry-kodambakkam
+pack: laundry
+name: "Tumbledry"
+area: "Kodambakkam, Chennai"
+greeting: "Vanakkam! Thank you for calling Tumbledry Kodambakkam. I am the store's AI assistant. How can I help you today?"
+hours: "9 AM to 9 PM every day"
+languages: [english, tamil, hindi, telugu]
+default_language: english
+manager:
+  name: "the store manager"
+  callback_promise: "the same day"
+# Google Sheet CRM: set sheet_id to go live; leave empty for demo mode (sample data)
+sheet_id: ""
+services:
+  - "dry cleaning"
+  - "wash and iron"
+  - "wash and fold"
+  - "ironing"
+  - "shoe and bag cleaning"
+  - "sofa and carpet cleaning"
+prices:
+  - "shirt wash and iron Rs 99"
+  - "saree dry clean from Rs 299"
+  - "suit dry clean from Rs 499"
+  - "bedsheet Rs 199"
+  - "shoes from Rs 349"
+pickup:
+  free: true
+  slot_hours: [9, 21]   # 9 AM - 9 PM
+  slot_len_hours: 2
