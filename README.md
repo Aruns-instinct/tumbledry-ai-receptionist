@@ -6,9 +6,10 @@ Status: WORKING DEMO (21 Oct 2026), built entirely on free tiers. Cost so far: R
 
 ## Try it on your phone (no login, no install)
 
-1. Open this link on your phone: [Talk to the Tumbledry AI receptionist](https://meet.livekit.io/custom?liveKitUrl=wss%3A%2F%2Ftumbledry-receptionist-fg7724w5.livekit.cloud&token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiQXJ1biIsInZpZGVvIjp7InJvb21Kb2luIjp0cnVlLCJyb29tIjoidHVtYmxlZHJ5LWRlbW8iLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWUsImNhblB1Ymxpc2hEYXRhIjp0cnVlfSwic3ViIjoiYXJ1biIsImlzcyI6IkFQSUdiZzdHeEt6OHZqWCIsIm5iZiI6MTc5MjU4NDQwOCwiZXhwIjoxNzkyNjcwODA4fQ.S29W7cI8dnEF7i_QYNt-ylU6aT5oGPpfS3ZD7VmbXoM)
-2. Allow the microphone when the browser asks. You can switch the camera off.
-3. Tap Join. The receptionist answers within a few seconds. Talk normally, and try Tamil, Hindi or Telugu too.
+1. First tell us you are ready (message Instinct: "ready to try the receptionist"). We wake the agent into the demo room, which takes about 10 seconds.
+2. Once we confirm, open this link on your phone: [Talk to the Tumbledry AI receptionist](https://meet.livekit.io/custom?liveKitUrl=wss%3A%2F%2Ftumbledry-receptionist-fg7724w5.livekit.cloud&token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiQXJ1biIsInZpZGVvIjp7InJvb21Kb2luIjp0cnVlLCJyb29tIjoidHVtYmxlZHJ5LWRlbW8iLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWUsImNhblB1Ymxpc2hEYXRhIjp0cnVlfSwic3ViIjoiYXJ1biIsImlzcyI6IkFQSUdiZzdHeEt6OHZqWCIsIm5iZiI6MTc5MjU4NDQwOCwiZXhwIjoxNzkyNjcwODA4fQ.S29W7cI8dnEF7i_QYNt-ylU6aT5oGPpfS3ZD7VmbXoM)
+3. Allow the microphone when the browser asks, then tap Start Audio. You can switch the camera off.
+4. Say hello to start. Talk normally, and try Tamil, Hindi or Telugu too.
 
 The link carries a temporary access token that expires at 5:36 PM IST on 22 Oct 2026. Ask for a fresh link after that. The page looks like a video-call screen; it is the quickest no-login way to talk to the agent today. A real phone number is coming (see below).
 
