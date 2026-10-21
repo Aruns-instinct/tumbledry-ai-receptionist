@@ -4,6 +4,16 @@ An AI voice receptionist for the Tumbledry dry-cleaning store in Kodambakkam, Ch
 
 Status: WORKING DEMO (21 Oct 2026), built entirely on free tiers. Cost so far: Rs 0.
 
+## Try it on your phone (no login, no install)
+
+1. Open this link on your phone: [Talk to the Tumbledry AI receptionist](https://meet.livekit.io/custom?liveKitUrl=wss%3A%2F%2Ftumbledry-receptionist-fg7724w5.livekit.cloud&token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiQXJ1biIsInZpZGVvIjp7InJvb21Kb2luIjp0cnVlLCJyb29tIjoidHVtYmxlZHJ5LWRlbW8iLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWUsImNhblB1Ymxpc2hEYXRhIjp0cnVlfSwic3ViIjoiYXJ1biIsImlzcyI6IkFQSUdiZzdHeEt6OHZqWCIsIm5iZiI6MTc5MjU4NDQwOCwiZXhwIjoxNzkyNjcwODA4fQ.S29W7cI8dnEF7i_QYNt-ylU6aT5oGPpfS3ZD7VmbXoM)
+2. Allow the microphone when the browser asks. You can switch the camera off.
+3. Tap Join. The receptionist answers within a few seconds. Talk normally, and try Tamil, Hindi or Telugu too.
+
+The link carries a temporary access token that expires at 5:36 PM IST on 22 Oct 2026. Ask for a fresh link after that. The page looks like a video-call screen; it is the quickest no-login way to talk to the agent today. A real phone number is coming (see below).
+
+Alternative (needs the LiveKit sign-in email): go to https://cloud.livekit.io, sign in with arun.isnow@outlook.com (email link, no password), open project tumbledry-receptionist, then Agents > receptionist-1f42 > Start session.
+
 ## Stack
 
 - LiveKit Cloud, free Build plan: agent hosting (1,000 agent minutes/month free), WebRTC transport.
@@ -25,6 +35,22 @@ Status: WORKING DEMO (21 Oct 2026), built entirely on free tiers. Cost so far: R
 - Caller: "What are your store timings?" -> Agent: "We are open from 9 AM to 9 PM every single day."
 - Caller: "How much to dry clean a saree?" -> Agent: "Saree dry cleaning starts from Rs 299. I can have our team confirm the exact rate for your specific saree on WhatsApp."
 
+## Indian phone number: progress (21 Oct 2026)
+
+- Goal: a real Indian number customers can call, wired into this same agent over SIP.
+- Plivo: not usable. Its signup rejects free email addresses (Outlook/Gmail) for accounts that rent Indian numbers.
+- Vobiz (Indian provider): account created and KYC fully verified on 21 Oct (PAN + Aadhaar via DigiLocker). Console shows "KYC Completed".
+- Number availability: Vobiz has no Tamil Nadu / Chennai numbers. Choices: Karnataka landline (080) at Rs 500/mo + Rs 100 setup, Gujarat (079) at Rs 600/mo + Rs 100 setup, or 92-series mobile-format numbers at Rs 1,000/mo + Rs 100 setup. 18% GST applies. Wallet top-up minimum Rs 500 via Razorpay (UPI, cards, netbanking).
+- Next step, once the number choice and ~Rs 700-1,200 first-month budget are approved: buy the number, create a Vobiz inbound SIP trunk to the LiveKit SIP URI (34pkc2vs5cq.sip.livekit.cloud), add a LiveKit dispatch rule for receptionist-1f42, and place a real test call.
+
+## Order-status portal: planned scope (from Arun, 21 Oct 2026)
+
+- Customer-facing order-status portal: one-tap stages (sorting, washing, ironing, delivery ready, out for delivery), with delay reason and promised delivery time.
+- Automatic WhatsApp messages to customers at each stage.
+- The receptionist matches the caller's phone number to their order, reads the CRM/portal status and answers naturally.
+- One-line log per call: reason for calling and customer mood.
+- Open question: whether Tumbledry's franchise CRM has an API/export, or the portal must be the source of truth. Research done, not built yet.
+
 ## Run it
 
 1. Copy `.env.example` to `.env.local` and fill in your LiveKit Cloud project credentials.
@@ -35,8 +61,8 @@ The deployed agent name is `receptionist-1f42` (agent id CA_Vz3MyvMZAfps). Rooms
 
 ## Roadmap
 
-- Live order status from the store CRM (or a staff-updated sheet until then).
-- Indian phone number via Plivo/Vobiz with SIP trunk into LiveKit (~Rs 0.40/min + number rental), or call-forwarding of unanswered store calls.
+- Live order status from the store CRM or the status portal above.
+- Indian phone number live on the agent (see progress section), or call-forwarding of unanswered store calls.
 - WhatsApp Business Calling as the call channel (business-initiated calls billed ~Rs 0.39/min in India, volume-tiered; see WhatsApp research notes from 21 Oct 2026).
 - Real rate card, real store policies, manager voice clone only with her written consent.
 - Daily call summary to the owner on WhatsApp.
