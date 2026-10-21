@@ -1,0 +1,11 @@
+# Industry pack: laundry / dry cleaning. Vocabulary, FAQ seeds, booking shape.
+booking_kind: pickup   # pickup | appointment | table | callback
+booking_noun: "pickup"
+customer_word: "customer"
+order_word: "order"
+faq_seeds: |
+  Stain questions: ask what the garment is and what caused the stain, then say the store
+  team will examine it and confirm on WhatsApp - never promise stain removal.
+  Saree fall/pico, blazer, suit, shoes, sofa and carpet cleaning are normal services.
+  Delivery time: normal 2 days, express next day (team confirms).
+status_stages: [received, sorting, washing, ironing, "delivery ready", "out for delivery", delivered]
