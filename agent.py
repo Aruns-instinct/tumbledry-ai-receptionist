@@ -26,6 +26,7 @@ DEFAULT_BIZ = {
     "languages": ["english", "tamil", "hindi", "telugu"],
     "default_language": "english",
     "manager": {"name": "the store manager", "callback_promise": "the same day"},
+    "timezone": "Asia/Kolkata",
     "sheet_id": "",
     "services": ["dry cleaning", "wash and iron", "wash and fold", "ironing", "shoe and bag cleaning", "sofa and carpet cleaning"],
     "prices": ["shirt wash and iron Rs 99", "saree dry clean from Rs 299", "suit dry clean from Rs 499", "bedsheet Rs 199", "shoes from Rs 349"],
@@ -82,25 +83,38 @@ class Store:
     """Google Sheet when configured, else embedded demo data. Same methods either way."""
     def __init__(self):
         self.sheet_id = BIZ.get("sheet_id") or ""
+        self.calendar_id = BIZ.get("calendar_id") or os.environ.get("GOOGLE_CALENDAR_ID", "")
         self._sa = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON", "")
         self.live = bool(self.sheet_id and self._sa)
         if self.live:
             try:
-                from google.oauth2 import service_account
-                info = json.loads(self._sa)
-                self._creds = service_account.Credentials.from_service_account_info(
-                    info, scopes=["https://www.googleapis.com/auth/spreadsheets"])
+                self._token()  # prove sheets auth now
                 logger.info("Store: LIVE Google Sheet %s", self.sheet_id)
             except Exception as e:
                 logger.error("Sheet auth failed, falling back to demo: %s", e)
                 self.live = False
         if not self.live:
             logger.info("Store: DEMO mode (%d sample orders)", len(DEMO["orders"]))
+        self.cal_live = bool(self.calendar_id and self._sa)
+        if self.cal_live:
+            try:
+                self._token("https://www.googleapis.com/auth/calendar.events")
+                logger.info("Calendar: LIVE Google Calendar %s", self.calendar_id)
+            except Exception as e:
+                logger.error("Calendar auth failed, demo slots: %s", e)
+                self.cal_live = False
 
-    def _token(self):
+    def _token(self, scope="https://www.googleapis.com/auth/spreadsheets"):
         import google.auth.transport.requests
-        self._creds.refresh(google.auth.transport.requests.Request())
-        return self._creds.token
+        if not hasattr(self, "_creds_by_scope"):
+            self._creds_by_scope = {}
+        if scope not in self._creds_by_scope:
+            from google.oauth2 import service_account
+            info = json.loads(self._sa)
+            self._creds_by_scope[scope] = service_account.Credentials.from_service_account_info(info, scopes=[scope])
+        c = self._creds_by_scope[scope]
+        c.refresh(google.auth.transport.requests.Request())
+        return c.token
 
     def _sheets(self, method, path, body=None):
         import urllib.request
@@ -129,11 +143,50 @@ class Store:
         row = [str(rec.get(h, "")) for h in hdr]
         self._sheets("POST", f"/values/{tab}!A1:append?valueInputOption=RAW", {"values": [row]})
 
+    def _calendar(self, method, path, body=None):
+        import urllib.request
+        url = f"https://www.googleapis.com/calendar/v3/calendars/{self.calendar_id}{path}"
+        req = urllib.request.Request(url, method=method,
+            data=json.dumps(body).encode() if body else None,
+            headers={"Authorization": f"Bearer {self._token('https://www.googleapis.com/auth/calendar.events')}",
+                     "Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return json.loads(r.read())
+
+    def cal_booked_slots(self, day):
+        tmin = f"{day}T00:00:00+05:30"; tmax = f"{day}T23:59:59+05:30"
+        res = self._calendar("GET", f"/events?timeMin={tmin}&timeMax={tmax}&singleEvents=true&fields=items(start,end,status)")
+        out = []
+        for ev in res.get("items", []):
+            if ev.get("status") == "cancelled":
+                continue
+            s = ev.get("start", {}).get("dateTime", "")[11:16]
+            e = ev.get("end", {}).get("dateTime", "")[11:16]
+            if s and e:
+                out.append(f"{s}-{e}")
+        return out
+
+    def cal_add_event(self, rec):
+        noun = PACK.get("booking_noun", "pickup")
+        sh, eh = rec["slot"].split("-")
+        body = {"summary": f"{noun.title()}: {rec['name']} ({rec['phone']})",
+                "description": f"Address: {rec.get('address','')}\nBooked by AI receptionist.",
+                "start": {"dateTime": f"{rec['date']}T{sh}:00", "timeZone": BIZ.get("timezone", "Asia/Kolkata")},
+                "end": {"dateTime": f"{rec['date']}T{eh}:00", "timeZone": BIZ.get("timezone", "Asia/Kolkata")}}
+        ev = self._calendar("POST", "/events", body)
+        logger.info("CALENDAR EVENT %s %s", ev.get("id"), ev.get("htmlLink"))
+        return ev.get("id")
+
     def find_orders(self, phone):
         digits = re.sub(r"\D", "", str(phone))[-10:]
         return [o for o in self._read_tab("orders") if digits and re.sub(r"\D", "", str(o.get("phone", "")))[-10:] == digits]
 
     def booked_slots(self, day):
+        if self.cal_live:
+            try:
+                return self.cal_booked_slots(day)
+            except Exception as e:
+                logger.error("calendar read failed, sheet/demo slots: %s", e)
         return [b.get("slot", "") for b in self._read_tab("bookings") if b.get("date") == day]
 
     def add_booking(self, rec):
@@ -150,8 +203,9 @@ def slots_for(day_str):
         datetime.date.fromisoformat(day_str)
     except (ValueError, TypeError):
         return []
-    start, end = BIZ.get("pickup", {}).get("slot_hours", [9, 21])
-    ln = BIZ.get("pickup", {}).get("slot_len_hours", 2)
+    bconf = BIZ.get("booking", BIZ.get("pickup", {}))
+    start, end = bconf.get("slot_hours", [9, 21])
+    ln = bconf.get("slot_len_hours", 2)
     taken = set(STORE.booked_slots(day_str))
     out, h = [], start
     while h + ln <= end:
@@ -169,6 +223,7 @@ def build_instructions():
     faq = PACK.get("faq_seeds", "")
     stages = ", ".join(str(x) for x in PACK.get("status_stages", []))
     mgr = BIZ.get("manager", {})
+    order_block = ("""ORDER STATUS (use the lookup_order tool): when a caller asks about an order, ask their phone number (the one given at the store) and call lookup_order. If found, tell them the stage naturally (stages flow: """ + stages + """) and the ready time. If not found, take name, phone and order number and promise the team will WhatsApp the status.\n\n""" if stages else "")
     return f"""You are the friendly AI receptionist of {BIZ.get('name')}, a business in {BIZ.get('area')}, India. Always identify yourself as the business's AI assistant if anyone asks.
 
 LANGUAGE: Start in {str(BIZ.get('default_language', 'english')).title()}. If the caller speaks {langs}, switch to their language and continue in it.
@@ -184,9 +239,7 @@ TELUGU STYLE: natural everyday spoken Telugu, polite but relaxed, mixing English
 FACTS: Open {BIZ.get('hours')}. Located in {BIZ.get('area')}. Services: {services}. {'Free home pickup and delivery.' if BIZ.get('pickup', {}).get('free') else ''}
 PRICES (approximate; offer to confirm exact rates on WhatsApp): {prices}. For anything not listed, say the team will confirm the exact price on WhatsApp.
 
-ORDER STATUS (use the lookup_order tool): when a caller asks about an order, ask their phone number (the one given at the store) and call lookup_order. If found, tell them the stage naturally (stages flow: {stages}) and the ready time. If not found, take name, phone and order number and promise the team will WhatsApp the status.
-
-BOOKING (use the tools): when a caller wants a {noun}, ask which day, call get_slots for that day, offer two or three options, then collect name, phone number, address and call book_slot. After a successful booking, tell them a WhatsApp confirmation will follow.
+{order_block}BOOKINGBOOKING (use the tools): when a caller wants {"an" if noun[:1].lower() in "aeiou" else "a"} {noun}, ask which day, call get_slots for that day, offer two or three options, then collect name, phone number, address and call book_slot. After a successful booking, tell them a WhatsApp confirmation will follow.
 
 ESCALATION (use the escalate tool): for complaints, listen fully, apologize once, then call escalate with a one-line summary and promise a callback from {mgr.get('name', 'the manager')} {mgr.get('callback_promise', 'the same day')}. Also escalate if the caller insists on talking to the owner or manager.
 
@@ -231,6 +284,11 @@ class SMBAgent(Agent):
         rec = {"name": name, "phone": phone, "address": address, "date": date, "slot": slot,
                "booked_at": datetime.datetime.now().isoformat(timespec="seconds")}
         STORE.add_booking(rec)
+        if STORE.cal_live:
+            try:
+                rec["event_id"] = STORE.cal_add_event(rec)
+            except Exception as e:
+                logger.error("calendar event create failed: %s", e)
         confirmation = f"{BIZ.get('name')} {BIZ.get('area')}: {noun} confirmed for {date}, {slot}. Address: {address}. Questions? Reply here."
         logger.info("BOOKING %s | WhatsApp confirmation text: %s", {k: rec[k] for k in ('name', 'phone', 'date', 'slot')}, confirmation)
         return f"Booked. {noun.title()} on {date} at {slot} for {name}, {address}. A WhatsApp confirmation will follow."
