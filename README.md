@@ -1,73 +1,77 @@
-# Tumbledry AI Receptionist
+# SMB AI Receptionist
 
-An AI voice receptionist for the Tumbledry dry-cleaning store in Kodambakkam, Chennai. It answers calls 24x7, speaks English, Tamil, Hindi and Telugu, answers store and price questions, takes pickup bookings and messages, and hands complaints to a human.
+A voice AI receptionist that works for any small or medium business. One codebase:
+each business is a config file (`business.yaml`) plus an industry pack (`packs/*.yaml`).
+The first reference business is Tumbledry, Kodambakkam, Chennai (pack: `laundry`).
 
-Status: WORKING DEMO (21 Oct 2026), built entirely on free tiers. Cost so far: Rs 0.
+Built on the free stack: LiveKit Agents + LiveKit Cloud (Build plan) + Gemini Live via
+LiveKit Inference. No paid services required to run the demo.
 
-## Try it on your phone (no login, no install)
+## What it does on a call
 
-1. Tell us you are ready (message Instinct: "ready to try the receptionist"). We wake the agent into the demo room, which takes about 10 seconds, and send you the current link.
-2. Once we confirm, open the link we send you on your phone.
-3. Allow the microphone when the browser asks, then tap Start Audio. You can switch the camera off.
-4. Say hello to start. Talk normally, and try Tamil, Hindi or Telugu too.
+- Greets the caller as the business's AI assistant, in English, Tamil, Hindi or Telugu
+  (Chennai spoken-Tamil register, natural Tanglish mixing).
+- Answers hours, location, services and prices from the business config.
+- **Order status lookup**: caller gives their phone number, the agent looks up their
+  order and reads out the stage and ready time (`lookup_order` tool).
+- **Pickup/appointment booking**: offers real free slots, books with name, phone and
+  address, and generates the WhatsApp confirmation text (`get_slots`, `book_slot`).
+  Double-booked slots are rejected automatically.
+- **Human handoff with context**: complaints or owner requests are escalated to the
+  manager with a one-line summary (`escalate`).
+- **CRM-style call log**: every call ends with a structured log of reason, caller mood
+  and outcome (`log_call`).
 
-Each link carries a temporary access token (valid 24-48 hours); ask for a fresh one when it expires. Tokens are sent by chat, never committed here. The page looks like a video-call screen; it is the quickest no-login way to talk to the agent today. A real phone number is coming (see below).
+## Data backend: demo mode vs live mode
 
-Alternative (needs the LiveKit sign-in email): go to https://cloud.livekit.io, sign in with the project owner's LiveKit email (email link, no password), open project tumbledry-receptionist, then Agents > receptionist-1f42 > Start session.
+- **Demo mode (default)**: works out of the box with sample data in `demo_data.json`.
+  Nothing to connect.
+- **Live mode**: set `sheet_id` in `business.yaml` to a Google Sheet with tabs
+  `orders`, `bookings`, `calls` (first row = column headers), and set the
+  `GOOGLE_SERVICE_ACCOUNT_JSON` agent secret (a service account the sheet is shared
+  with). The same tools then read and write the sheet.
 
-## Stack
+## Onboard a new business (self-serve)
 
-- LiveKit Cloud, free Build plan: agent hosting (1,000 agent minutes/month free), WebRTC transport.
-- LiveKit Agents SDK (open source, Apache-2.0): agent framework.
-- Google Gemini 3.8 Live (realtime speech-to-speech) via LiveKit Inference: free $2.50/month credit covers ~170 call minutes.
-- Voice: Kore (female, multilingual automatic).
+1. Copy `business.yaml`, edit name, area, hours, services, prices, manager, languages.
+2. Pick the closest pack in `packs/` (today: `laundry`) or copy it to a new pack with
+   your booking noun (`pickup`, `appointment`, `table`), status stages and FAQ seeds.
+3. Replace `demo_data.json` samples, or point `sheet_id` at the business's Google Sheet.
+4. Deploy (see below). The agent name, greeting and behavior all come from config.
 
-## What it does today
+## Deploy to LiveKit Cloud
 
-- Greets callers: "Vanakkam! Thank you for calling Tumbledry Kodambakkam..."
-- Answers store hours (9 AM - 9 PM daily), location, services and indicative prices (shirt Rs 99, saree from Rs 299, suit from Rs 499, bedsheet Rs 199, shoes from Rs 349).
-- Takes order-status requests as a callback (name, phone, order number) - no live CRM link yet.
-- Takes pickup bookings and complaints as messages for the store team.
-- Switches language to match the caller (English, Tamil, Hindi, Telugu).
+```
+pip install livekit-cli   # or: curl -sSL https://get.livekit.io/cli | bash
+export LIVEKIT_URL=wss://<your-project>.livekit.cloud
+export LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=...
+lk agent create .          # first time
+lk agent deploy .          # subsequent versions (agent id lives in livekit.toml)
+```
 
-## Validated demo session (21 Oct 2026)
+The deployed worker registers as dispatch name `receptionist-1f42`. Create a room and
+dispatch the agent per session (it is not 24x7 in a room):
 
-- Agent: "Vanakkam! Thank you for calling Tumbledry Kodambakkam. I am the store's AI assistant. How can I help you today?"
-- Caller: "What are your store timings?" -> Agent: "We are open from 9 AM to 9 PM every single day."
-- Caller: "How much to dry clean a saree?" -> Agent: "Saree dry cleaning starts from Rs 299. I can have our team confirm the exact rate for your specific saree on WhatsApp."
+```python
+await lk.room.create_room(api.CreateRoomRequest(name="demo", empty_timeout=600))
+await lk.agent_dispatch.create_dispatch(api.CreateAgentDispatchRequest(
+    room="demo", agent_name="receptionist-1f42"))
+```
 
-## Indian phone number: progress (21 Oct 2026)
+Join link for a human: `https://meet.livekit.io/custom?liveKitUrl=<url-encoded-wss>&token=<jwt>`.
 
-- Goal: a real Indian number customers can call, wired into this same agent over SIP.
-- Plivo: not usable. Its signup rejects free email addresses (Outlook/Gmail) for accounts that rent Indian numbers.
-- Vobiz (Indian provider): account created and KYC fully verified on 21 Oct (PAN + Aadhaar via DigiLocker). Console shows "KYC Completed".
-- Number availability: Vobiz has no Tamil Nadu / Chennai numbers. Choices: Karnataka landline (080) at Rs 500/mo + Rs 100 setup, Gujarat (079) at Rs 600/mo + Rs 100 setup, or 92-series mobile-format numbers at Rs 1,000/mo + Rs 100 setup. 18% GST applies. Wallet top-up minimum Rs 500 via Razorpay (UPI, cards, netbanking).
-- Next step, once the number choice and ~Rs 700-1,200 first-month budget are approved: buy the number, create a Vobiz inbound SIP trunk to the LiveKit SIP URI (34pkc2vs5cq.sip.livekit.cloud), add a LiveKit dispatch rule for receptionist-1f42, and place a real test call.
+## Repo layout
 
-## Order-status portal: planned scope (from Arun, 21 Oct 2026)
-
-- Customer-facing order-status portal: one-tap stages (sorting, washing, ironing, delivery ready, out for delivery), with delay reason and promised delivery time.
-- Automatic WhatsApp messages to customers at each stage.
-- The receptionist matches the caller's phone number to their order, reads the CRM/portal status and answers naturally.
-- One-line log per call: reason for calling and customer mood.
-- Open question: whether Tumbledry's franchise CRM has an API/export, or the portal must be the source of truth. Research done, not built yet.
-
-## Run it
-
-1. Copy `.env.example` to `.env.local` and fill in your LiveKit Cloud project credentials.
-2. `pip install -r requirements.txt`
-3. `python agent.py dev` for local dev, or deploy to LiveKit Cloud with the `lk` CLI.
-
-The deployed agent name is `receptionist-1f42` (agent id CA_Vz3MyvMZAfps). Rooms need an explicit agent dispatch to that name, or a session started from the LiveKit Cloud Console.
+- `agent.py` - the whole agent: config loader, sheet/demo backend, tools, instructions builder
+- `business.yaml` - per-business config (Tumbledry = reference)
+- `packs/laundry.yaml` - industry pack: booking shape, status stages, FAQ seeds
+- `demo_data.json` - sample orders for demo mode
+- `requirements.txt`, `Dockerfile`, `.dockerignore`, `livekit.toml` - deployment
+- `.env.example` - environment variables (never commit real keys)
 
 ## Roadmap
 
-- Live order status from the store CRM or the status portal above.
-- Indian phone number live on the agent (see progress section), or call-forwarding of unanswered store calls.
-- WhatsApp Business Calling as the call channel (business-initiated calls billed ~Rs 0.39/min in India, volume-tiered; see WhatsApp research notes from 21 Oct 2026).
-- Real rate card, real store policies, manager voice clone only with her written consent.
-- Daily call summary to the owner on WhatsApp.
-
-## Cost notes
-
-Demo: Rs 0 (all free allowances). Production estimate for 30 calls/day x 3 min: Gemini Live paid ~Rs 1.7-2.9/min + telephony ~Rs 0.40/min; roughly Rs 4,600-7,800/month.
+- Google Calendar as a booking backend (alongside Sheets)
+- Real WhatsApp sends via WhatsApp Business API (confirmation text is generated and logged today)
+- Live call transfer to the manager's phone (needs a phone number / SIP trunk)
+- More industry packs: salon, clinic, restaurant, tuition center
