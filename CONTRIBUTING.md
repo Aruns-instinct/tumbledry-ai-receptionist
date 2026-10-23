@@ -1,37 +1,34 @@
 # Contributing / collaborating on this project
 
-Two people work on this repo: the owner (Arun) and invited collaborators.
+This repo has one owner and invited collaborators.
 
 ## Ground rules
 
-- **Never commit secrets.** No LiveKit API keys, tokens, service-account JSON, or
-  customer data. Config goes in `business.yaml`; credentials stay in environment
-  variables / agent secrets. If a secret ever lands in a commit, treat it as
-  compromised and rotate it.
-- **`main` is the deployed demo.** What is on `main` is what the live receptionist
-  runs. Do not push experiment code directly to `main`.
+- **Never commit secrets.** No LiveKit API keys, tokens, `.env` files, customer
+  phone numbers or call logs. The repo is public; treat every commit as published.
 - **Work in branches or a fork.** Open a pull request into `main`; the owner reviews
-  and merges. One PR = one change you can describe in a sentence.
-
-## Two ways to collaborate
-
-1. **Fork (default, safest).** Fork this repo to your own GitHub account, change
-   anything, open a PR back. No access grants needed; your fork is your sandbox.
-2. **Collaborator (if invited).** You get write access. Still work on a branch and
-   open PRs - `main` is protected.
-
-## Builds
-
-- The live demo deploys from `main` only, via `lk agent deploy .` (see README), to the
+  and merges.
+- **Deploys are owner-only.** Only code merged into `main` gets deployed to the
   owner's LiveKit Cloud project. Free plan = one agent, so experiment deploys do NOT
   go to the owner's project.
-- For your own test builds: create a free LiveKit Cloud account, `lk agent create .`
-  in your clone, and you get your own demo link. Your builds stay yours; the shared
-  demo updates only after a merge to `main`.
+- To run your own build: create your own free LiveKit Cloud project, copy
+  `livekit.toml.example`, fill in your credentials, and `lk agent deploy .` from
+  your branch. Your demo link comes from your own project.
 
-## Repo map
+## Repo layout
 
-- `agent.py` - the agent (config-driven; behavior comes from config, not code edits)
-- `business.yaml` - the business being served (Tumbledry today)
-- `packs/*.yaml` - industry packs (laundry, salon)
-- `demo_data.json` - sample data for demo mode
+- `agent.py` — the receptionist agent (config-driven, reads `business.yaml`)
+- `business.yaml` — active business pack (name, services, hours, language style)
+- `packs/` — ready-made packs (`laundry.yaml` = Tumbledry-style, `salon.yaml` = salon demo)
+- `demo_data.json` — fake orders/slots for demo calls; replace with real integrations
+- `requirements.txt` — Python deps (LiveKit Agents stack)
+
+## Changing behavior
+
+- New business vertical → add `packs/<name>.yaml`, don't hardcode in `agent.py`
+- Greeting / language register → edit the pack's `greeting` and `style` fields
+- Test by calling your own demo link before opening a PR
+
+## Questions
+
+Open a GitHub issue or ask in the PR thread.
