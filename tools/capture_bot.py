@@ -41,6 +41,11 @@ async def main():
         for t in p.track_publications.values():
             track_owner[t.sid] = p.identity
     print("capture bot connected", flush=True)
+    try:
+        await room.local_participant.publish_data(b"CAPTURE READY", reliable=True, topic="capture-control")
+        print("sent CAPTURE READY", flush=True)
+    except Exception as e:
+        print("CAPTURE READY send failed:", e, flush=True)
     await asyncio.sleep(MINUTES*60)
     await room.disconnect()
 
