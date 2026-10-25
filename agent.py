@@ -254,9 +254,16 @@ class SMBAgent(Agent):
         super().__init__(instructions=build_instructions())
 
     async def on_enter(self):
+        return  # greeting is triggered on participant connect in the entrypoint
+
+    async def _unused_on_enter(self):
         await self.session.generate_reply(
             instructions='Greet the caller with exactly this line, warmly and naturally: "'
-                + BIZ.get("greeting", "Hello! How can I help you today?") + '"',
+                + BIZ.get("greeting", "Hello! How can I help you today?") + '"'
+                + " Then, in the same language you greeted in, tell the caller with this one line: "
+                  "Test conversations will be transcribed for review - "
+                  "and ask if that is okay. "
+                  "Wait for the caller's answer before continuing with anything else.",
             allow_interruptions=True)
 
     @function_tool
@@ -328,11 +335,61 @@ async def entrypoint(ctx: JobContext):
     session = AgentSession(
         llm=inference.RealtimeModel(model="google/gemini-3.8-live", voice="Kore"),
     )
+    try:
+        @session.on("user_input_transcribed")
+        def _log_user(ev):
+            try:
+                t = getattr(ev, "transcript", None)
+                if t and getattr(ev, "is_final", True):
+                    logger.info("TRANSCRIPT user: %s", t)
+            except Exception as e:
+                logger.warning("user transcript log failed: %s", e)
+
+        async def _dump_history():
+            try:
+                for item in session.history.items:
+                    role = getattr(item, "role", "?")
+                    text = getattr(item, "text_content", None)
+                    if text:
+                        logger.info("TRANSCRIPT %s: %s", role, text)
+                    else:
+                        logger.info("TRANSCRIPT ITEM %s repr=%s", role, repr(item)[:200])
+                logger.info("TRANSCRIPT DUMP COMPLETE")
+            except Exception as e:
+                logger.warning("history dump failed: %s", e)
+        ctx.add_shutdown_callback(_dump_history)
+        logger.info("transcript capture enabled")
+    except Exception as e:
+        logger.warning("transcript capture unavailable: %s", e)
     await session.start(
         agent=SMBAgent(),
         room=ctx.room,
         room_options=room_io.RoomOptions(audio_input=audio_input_options()),
     )
+
+    greeted = False
+    def _do_greet(identity):
+        nonlocal greeted
+        if greeted:
+            return
+        greeted = True
+        logger.info("participant joined, greeting: %s", identity)
+        session.generate_reply(
+            instructions='Greet the caller with exactly this line, warmly and naturally: "'
+                + BIZ.get("greeting", "Hello! How can I help you today?") + '"'
+                + " Then, in the same language you greeted in, tell the caller with this one line: "
+                  "Test conversations will be transcribed for review - "
+                  "and ask if that is okay. "
+                  "Wait for the caller's answer before continuing with anything else.",
+            allow_interruptions=True)
+
+    @ctx.room.on("participant_connected")
+    def _greet_on_join(participant):
+        _do_greet(participant.identity)
+
+    for p in ctx.room.remote_participants.values():
+        _do_greet(p.identity)
+        break
 
 if __name__ == "__main__":
     cli.run_app(server)
