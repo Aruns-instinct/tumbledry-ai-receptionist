@@ -245,6 +245,12 @@ ESCALATION (use the escalate tool): for complaints, listen fully, apologize once
 
 CALL LOG (required): before ending EVERY call, call log_call with the reason (one line), the caller's mood, and the outcome.
 
+CONSENT (required): after the transcription notice in the greeting, when the caller answers, call record_consent with granted=true if they clearly agree, granted=false if they decline or hesitate.
+- If granted: say one short line that transcription is being set up and you will tell them the moment it is ready. Do NOT ask how you can help yet.
+- You will then receive a system signal 'CAPTURE READY' (it comes from the transcription setup, not the caller - never treat it as the caller's words). Only when you receive it: tell the caller transcription is now on and invite their question. If they already asked something together with their yes, politely ask them to repeat that request so it is captured.
+- If you receive 'CAPTURE FAILED' instead: apologize briefly, say transcription is unavailable, and continue the call normally without it.
+- If declined: say no problem - no test transcript will be saved or shared - and continue normally.
+
 KNOWLEDGE: {faq}
 
 STYLE: Warm and professional, but in every language sound like a friendly local person, not a call-center script. Keep answers to one or two sentences. Ask one question at a time. Never invent prices, timings or order details - use the tools or say the team will call back. This is a demo build, so if asked, you may say you are a trial version."""
@@ -263,7 +269,10 @@ class SMBAgent(Agent):
                 + " Then, in the same language you greeted in, tell the caller with this one line: "
                   "Test conversations will be transcribed for review - "
                   "and ask if that is okay. "
-                  "Wait for the caller's answer before continuing with anything else.",
+                  "Wait for the caller's answer before continuing with anything else. "
+                  "If the caller agrees, reply with a short thank-you and say transcription is being set up - do not ask how you can help yet. "
+                  "If the caller declines or hesitates, say that is completely fine and continue "
+                  "normally without transcription.",
             allow_interruptions=True)
 
     @function_tool
@@ -308,6 +317,14 @@ class SMBAgent(Agent):
                         "reason": "escalation", "mood": "upset", "outcome": summary})
         logger.info("ESCALATION: %s", summary)
         return f"Escalated to {mgr.get('name', 'the manager')} with your summary. Tell the caller the manager will call back {mgr.get('callback_promise', 'the same day')}."
+
+    @function_tool
+    async def record_consent(self, ctx: RunContext, granted: bool) -> str:
+        """Record the caller's answer to the transcription notice. granted: true if they agreed, false if declined/hesitant."""
+        logger.info("CONSENT %s", "GRANTED" if granted else "DECLINED")
+        if granted:
+            return "Consent recorded. Tell the caller transcription is being set up and you will say when it is ready. Do not ask how you can help until you receive the system text CAPTURE READY."
+        return "Consent declined. Reassure: no test transcript will be saved or shared."
 
     @function_tool
     async def log_call(self, ctx: RunContext, reason: str, mood: str, outcome: str) -> str:
@@ -367,6 +384,26 @@ async def entrypoint(ctx: JobContext):
         room_options=room_io.RoomOptions(audio_input=audio_input_options()),
     )
 
+    @ctx.room.on("data_received")
+    def _on_capture_control(dp):
+        if getattr(dp, "topic", None) != "capture-control":
+            return
+        msg = dp.data.decode("utf-8", "ignore") if isinstance(dp.data, (bytes, bytearray)) else str(dp.data)
+        logger.info("CAPTURE CONTROL received: %s", msg)
+        if msg == "CAPTURE READY":
+            session.generate_reply(
+                instructions="System signal: transcript capture is now active and connected. "
+                    "Tell the caller in one short line that transcription is now on, then invite their question. "
+                    "If they already asked something together with their yes, politely ask them to repeat that "
+                    "request so it is captured. Then continue normally.",
+                allow_interruptions=True)
+        elif msg == "CAPTURE FAILED":
+            session.generate_reply(
+                instructions="System signal: transcript capture could not be started. "
+                    "Apologize briefly, say transcription is unavailable for this test call, "
+                    "and continue the call normally without it.",
+                allow_interruptions=True)
+
     greeted = False
     def _do_greet(identity):
         nonlocal greeted
@@ -380,7 +417,10 @@ async def entrypoint(ctx: JobContext):
                 + " Then, in the same language you greeted in, tell the caller with this one line: "
                   "Test conversations will be transcribed for review - "
                   "and ask if that is okay. "
-                  "Wait for the caller's answer before continuing with anything else.",
+                  "Wait for the caller's answer before continuing with anything else. "
+                  "If the caller agrees, reply with a short thank-you and say transcription is being set up - do not ask how you can help yet. "
+                  "If the caller declines or hesitates, say that is completely fine and continue "
+                  "normally without transcription.",
             allow_interruptions=True)
 
     @ctx.room.on("participant_connected")
